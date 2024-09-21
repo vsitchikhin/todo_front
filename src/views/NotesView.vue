@@ -7,12 +7,11 @@
     <bn-divider />
     <div class="notes-page__list">
       <bn-note-card
-        v-for="(note, index) in noteList"
+        v-for="note in noteList"
         :key="note.id"
         :note="note"
-        :circle-color="HEADER_CIRCLE_COLORS[index % HEADER_CIRCLE_COLORS.length]"
+        :circle-color="HEADER_CIRCLE_COLORS[note.id % HEADER_CIRCLE_COLORS.length]"
         @delete="deleteNote"
-        class="notes-page__list-item"
       />
     </div>
     <bn-loader :loading="isLoading" />
@@ -85,14 +84,10 @@ export default defineComponent({
   }
 
   &__list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    grid-gap: 20px;
-    grid-auto-flow: row dense;
+    display: flex;
+    gap: 20px;
     padding-top: 12px;
-  }
-
-  &__list-item {
+    flex-wrap: wrap;
   }
 }
 </style>

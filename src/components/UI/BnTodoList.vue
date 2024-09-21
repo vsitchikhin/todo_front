@@ -6,24 +6,25 @@
         :key="item.id"
         :disabled="disabled"
         :todo="item"
-        @click="onChangeTodo"
       />
     </template>
     <template v-else>
-      <bn-todo-item
-        v-for="item in completedTodos"
-        :key="item.id"
-        :disabled="disabled"
-        :todo="item"
-        @click="onChangeTodo"
-      />
-      <bn-divider />
       <bn-todo-item
         v-for="item in todosInProgress"
         :key="item.id"
         :disabled="disabled"
         :todo="item"
-        @click="onChangeTodo"
+        @change="onChangeTodo"
+        @delete="onDeleteTodo"
+      />
+      <bn-divider />
+      <bn-todo-item
+        v-for="item in completedTodos"
+        :key="item.id"
+        :disabled="disabled"
+        :todo="item"
+        @change="onChangeTodo"
+        @delete="onDeleteTodo"
       />
     </template>
   </div>
@@ -55,7 +56,8 @@ export default defineComponent({
   },
 
   emits: {
-    'click': null,
+    'change': null,
+    'delete': null,
   },
 
   data() {
@@ -65,9 +67,19 @@ export default defineComponent({
     }
   },
 
+  watch: {
+    todos(newValue: TodoDto[]) {
+      this.completedTodos = newValue.filter(todo => todo.isComplete)
+      this.todosInProgress = newValue.filter(todo => !todo.isComplete)
+    }
+  },
+
   methods: {
     onChangeTodo(event: Event, todo: TodoDto) {
-      this.$emit('click', event, todo)
+      this.$emit('change', event, todo)
+    },
+    onDeleteTodo(event: Event, todo: TodoDto) {
+      this.$emit('delete', event, todo);
     }
   }
 })
@@ -76,6 +88,7 @@ export default defineComponent({
 <style scoped lang="scss">
 .bn-todo-list {
   display: flex;
+  min-height: 140px;
   flex-direction: column;
   align-content: center;
   gap: 12px;

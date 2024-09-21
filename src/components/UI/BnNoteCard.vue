@@ -77,7 +77,7 @@ export default defineComponent({
 @import '@/assets/css/variables.scss';
 
 .bn-note-card {
-  width: 1fr;
+  width: 17vw;
   height: fit-content;
   background-color: $main-bg;
   box-shadow: 4px 4px 4px rgba(0,0,0,0.2);
@@ -102,6 +102,7 @@ export default defineComponent({
 
   &__header-title {
     line-height: 1rem;
+    font-size: 1.8rem;
   }
 
   &__header-circle {

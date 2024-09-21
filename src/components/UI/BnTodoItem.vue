@@ -1,15 +1,14 @@
 <template>
   <div
-    @click="onChangeTodo"
     :class="checkboxClasses"
     class="bn-todo-item"
   >
     <input
       type="checkbox"
       :id="`check-${todo.id}`"
-      :value="todo.isComplete"
+      :checked="todo.isComplete"
       class="bn-todo-item__checkbox"
-
+      @change="onChangeTodo"
     />
     <label
       :for="`check-${todo.id}`"
@@ -17,8 +16,14 @@
     >
       {{todo.title}}
     </label>
-
+    <img
+      src="@/assets/icons/cross.svg"
+      alt="delete"
+      @click="onDeleteTodo"
+      class="bn-todo-item__delete-icon"
+    >
   </div>
+
 </template>
 
 <script lang="ts">
@@ -40,7 +45,8 @@ export default defineComponent({
   },
 
   emits: {
-    'click': null,
+    'change': null,
+    'delete': null,
   },
 
   data() {
@@ -53,7 +59,11 @@ export default defineComponent({
 
   methods: {
     onChangeTodo(event: Event) {
-      this.$emit('click', event, this.todo)
+      this.$emit('change', event, this.todo)
+    },
+
+    onDeleteTodo(event: Event) {
+      this.$emit('delete', event, this.todo)
     }
   }
 })
@@ -79,14 +89,34 @@ export default defineComponent({
     border: 2px solid $main-border;
     width: 20px;
     height: 20px;
+    cursor: pointer;
 
     &:checked {
-      // todo: сделать галочку
+      width: 12px;
+      transform: rotate(-135deg);
+      margin-left: 10px;
+      margin-right: 5px;
+      margin-bottom: 8px;
+      border-bottom: 0;
+      border-right: 0;
+      border-radius: 0;
     }
   }
 
   &__label {
     font-size: 1.5rem;
+    font-weight: 500;
+    padding-left: 8px;
+    cursor: pointer;
+
+    &:checked {
+      color: grey;
+    }
+  }
+
+  &__delete-icon {
+    width: 20px;
+    height: 20px;
     padding-left: 8px;
   }
 }

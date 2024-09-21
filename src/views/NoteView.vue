@@ -1,29 +1,212 @@
 <template>
-  <div class="note-page"></div>
+  <div class="note-page">
+    <header class="note-page__header">
+      <div v-if="isShowHeaderInput" class="note-page__header-title-block">
+        <input v-model="newNoteTitle" type="text" class="note-page__header-title-input" @blur="onUpdateNote" @keydown="onNoteEnterPressed">
+      </div>
+      <div v-else class="note-page__header-title-block">
+        <div class="note-page__header-circle" :style="circleStyles" />
+        <h1 class="note-page__header-title">
+          {{note.title}}
+        </h1>
+      </div>
+      <bn-button :title="headerTitle" @click="onHeaderButtonClick" class="note-page__header-button" />
+      <bn-button
+        v-if="note"
+        title="Удалить заметку"
+        color="red"
+        dark
+        @click="onDeleteNote"
+        class="note-page__header-button"
+      />
+    </header>
+    <div class="note-page__list" v-if="note">
+      <bn-todo-list :todos="note.todos" @change="onChangeTodo" @delete="onDeleteTodo" />
+    </div>
+    <div v-if="note" class="note-page__add-block">
+      <input v-model="newTodoTitle" type="text" class="note-page__add-input" @blur="onCreateTodo" @keydown="onTodoEnterPressed">
+    </div>
+    <bn-loader :loading="isLoading" />
+    <bn-confirmation-dialog v-model="isConfirm" :open="isConfirmationOpen" />
+  </div>
 </template>
 
 <script lang="ts">
 import {defineComponent} from 'vue'
+import {createNote, createTodo, deleteTodo, loadNoteById, patchNote, patchTodo} from "@/utils/fetching.utils";
+import BnTodoList from "@/components/UI/BnTodoList.vue";
+import {TodoDto} from "@/types/todos.types";
+import BnLoader from "@/components/Controls/BnLoader.vue";
+import {HEADER_CIRCLE_COLORS} from "@/consts/notes.consts";
+import BnButton from "@/components/Controls/BnButton.vue";
+import {NoteDto} from "@/types/notes.types";
+import BnConfirmationDialog from "@/components/UI/BnConfirmationDialog.vue";
 
 export default defineComponent({
   name: "Note",
+  components: {BnConfirmationDialog, BnButton, BnLoader, BnTodoList},
 
   data() {
    return {
+     isLoading: false,
+     note: null as NoteDto | null,
+     circleStyles: {
+       'background-color': HEADER_CIRCLE_COLORS[parseInt(this.$route.params.id) % HEADER_CIRCLE_COLORS.length],
+     },
 
+     newTodoTitle: '',
+     newNoteTitle: '',
+     
+     isShowHeaderInput: !this.$route.params.id,
+
+     isConfirm: false,
+     isConfirmationOpen: false,
    }
   },
 
   methods: {
+    async onChangeTodo(event: Event, todo: TodoDto) {
+      if (!todo.id) {
+        return
+      }
+      this.isLoading = true
+      await patchTodo(todo?.id, {...todo, isComplete: !todo.isComplete})
+      this.note = await loadNoteById(parseInt(this.$route.params.id))
+      this.isLoading = false
+    },
 
+    async onDeleteTodo(event: Event, todo: TodoDto) {
+      if (!todo.id) {
+        return
+      }
+      this.isLoading = true
+
+      await deleteTodo(todo.id)
+      this.note = await loadNoteById(parseInt(this.$route.params.id))
+      this.isLoading = false
+    },
+
+    async onCreateTodo() {
+      if (!this.newTodoTitle) {
+        return
+      }
+      this.isLoading = true
+      const todo: TodoDto = {
+        title: this.newTodoTitle,
+        isComplete: false,
+        noteId: parseInt(this.$route.params.id),
+      }
+      this.newTodoTitle = ''
+      await createTodo(todo)
+      this.note = await loadNoteById(parseInt(this.$route.params.id))
+      this.isLoading = false
+    },
+
+    async onTodoEnterPressed(event: KeyboardEvent) {
+      if (event.key === 'Enter') {
+        await this.onCreateTodo()
+      }
+    },
+
+    async onHeaderButtonClick() {
+      this.isShowHeaderInput = !this.isShowHeaderInput
+    },
+
+    async onUpdateNote() {
+      if (!this.newNoteTitle) {
+        return
+      }
+
+      if (this.$route.params.id && this.note) {
+        this.isLoading = true
+        const newNote = {
+          ...this.note,
+          title: this.newNoteTitle,
+        }
+        await patchNote(parseInt(this.$route.params.id), newNote)
+        this.note = await loadNoteById(parseInt(this.$route.params.id))
+        this.newNoteTitle = ''
+      }
+
+      if (!this.$route.params.id) {
+        this.isLoading = true
+        const noteId = await createNote({title: this.newNoteTitle})
+        await this.$router.push({params: {id: noteId}})
+        this.note = await loadNoteById(parseInt(this.$route.params.id))
+        this.newNoteTitle = ''
+      }
+
+      this.isLoading = false
+      this.isShowHeaderInput = false;
+    },
+
+    async onNoteEnterPressed(event: KeyboardEvent) {
+      if (event.key === 'Enter') {
+        await this.onUpdateNote()
+      }
+    }
   },
 
-  created() {
-    // todo: запрос за заметкой
+  computed: {
+    headerTitle() {
+      return this.$route.params.id ? 'Изменить название' : 'Создать заметку';
+    }
+  },
+
+  async created() {
+    try {
+      this.isLoading = true;
+      this.note = await loadNoteById(parseInt(this.$route.params.id))
+      this.isLoading = false
+    } catch(error) {
+      console.error(error)
+      this.isLoading = false
+    }
   }
 })
 </script>
 
 <style scoped lang="scss">
+@import "@/assets/css/variables";
 
+.note-page {
+  &__header {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  &__header-title-block {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  &__header-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+
+  &__add-block {
+    display: flex;
+  }
+
+  &__add-input,
+  &__header-title-input {
+    outline: none;
+    border: 2px solid $main-border;
+    border-radius: 8px;
+    padding: 8px 12px;
+    width: 440px;
+    font-size: 16px;
+    line-height: 1rem;
+    font-weight: 600;
+    color: $main-font;
+  }
+
+  &__header-title-input {
+    font-size: 24px;
+  }
+}
 </style>

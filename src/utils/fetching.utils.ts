@@ -11,7 +11,7 @@ export async function loadNoteList() {
   }
 }
 
-export async function loadNotesById(id:number) {
+export async function loadNoteById(id:number) {
   try {
     return (await axios.get(`${process.env.VUE_APP_API_HOST}/notes/${id}`)).data;
 
