@@ -14,7 +14,7 @@
       <bn-button
         v-if="note"
         title="Удалить заметку"
-        color="red"
+        bg-color="red"
         dark
         @click="onDeleteNote"
         class="note-page__header-button"
@@ -27,13 +27,27 @@
       <input v-model="newTodoTitle" type="text" class="note-page__add-input" @blur="onCreateTodo" @keydown="onTodoEnterPressed">
     </div>
     <bn-loader :loading="isLoading" />
-    <bn-confirmation-dialog v-model="isConfirm" :open="isConfirmationOpen" />
+    <bn-confirmation-dialog
+      :is-confirm="isConfirm"
+      :open="isConfirmationOpen"
+      :note-title="note?.title"
+      @reject="isConfirmationOpen = false"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
 
 <script lang="ts">
 import {defineComponent} from 'vue'
-import {createNote, createTodo, deleteTodo, loadNoteById, patchNote, patchTodo} from "@/utils/fetching.utils";
+import {
+  createNote,
+  createTodo,
+  deleteNote,
+  deleteTodo,
+  loadNoteById,
+  patchNote,
+  patchTodo
+} from "@/utils/fetching.utils";
 import BnTodoList from "@/components/UI/BnTodoList.vue";
 import {TodoDto} from "@/types/todos.types";
 import BnLoader from "@/components/Controls/BnLoader.vue";
@@ -56,7 +70,7 @@ export default defineComponent({
 
      newTodoTitle: '',
      newNoteTitle: '',
-     
+
      isShowHeaderInput: !this.$route.params.id,
 
      isConfirm: false,
@@ -144,6 +158,35 @@ export default defineComponent({
       if (event.key === 'Enter') {
         await this.onUpdateNote()
       }
+    },
+
+    onDeleteNote() {
+      this.isConfirmationOpen = true
+    },
+
+    confirmDelete() {
+      this.isConfirmationOpen = false
+      this.isConfirm = true
+    }
+  },
+
+  watch: {
+    async isConfirm(value) {
+      if (!value) {
+        return
+      }
+
+      try {
+        this.isLoading = true
+        await deleteNote(parseInt(this.$route.params.id))
+        await this.$router.push({name: 'notes'})
+        this.isLoading = false
+      } catch (e) {
+        this.isLoading = false
+        console.error(e)
+      }
+
+      this.isConfirm = false
     }
   },
 

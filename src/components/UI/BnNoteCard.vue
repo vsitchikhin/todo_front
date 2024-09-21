@@ -66,7 +66,6 @@ export default defineComponent({
     },
 
     changeTodo(event: Event, todo: TodoDto) {
-      console.log('change')
       this.$emit('change', event, todo)
     }
   }
