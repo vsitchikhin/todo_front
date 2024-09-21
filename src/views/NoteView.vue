@@ -10,6 +10,8 @@
           {{note.title}}
         </h1>
       </div>
+    </header>
+    <div class="note-page__buttons">
       <bn-button :title="headerTitle" @click="onHeaderButtonClick" class="note-page__header-button" />
       <bn-button
         v-if="note"
@@ -19,7 +21,8 @@
         @click="onDeleteNote"
         class="note-page__header-button"
       />
-    </header>
+      <bn-button title="Отменить изменения" bg-color="orange" dark @click="cancelChanges" />
+    </div>
     <div class="note-page__list" v-if="note">
       <bn-todo-list :todos="note.todos" @change="onChangeTodo" @delete="onDeleteTodo" />
     </div>
@@ -85,6 +88,7 @@ export default defineComponent({
       }
       this.isLoading = true
       await patchTodo(todo?.id, {...todo, isComplete: !todo.isComplete})
+      localStorage.setItem('note', JSON.stringify(this.note))
       this.note = await loadNoteById(parseInt(this.$route.params.id))
       this.isLoading = false
     },
@@ -96,6 +100,7 @@ export default defineComponent({
       this.isLoading = true
 
       await deleteTodo(todo.id)
+      localStorage.setItem('note', JSON.stringify(this.note))
       this.note = await loadNoteById(parseInt(this.$route.params.id))
       this.isLoading = false
     },
@@ -112,6 +117,7 @@ export default defineComponent({
       }
       this.newTodoTitle = ''
       await createTodo(todo)
+      localStorage.setItem('note', JSON.stringify(this.note))
       this.note = await loadNoteById(parseInt(this.$route.params.id))
       this.isLoading = false
     },
@@ -138,6 +144,7 @@ export default defineComponent({
           title: this.newNoteTitle,
         }
         await patchNote(parseInt(this.$route.params.id), newNote)
+        localStorage.setItem('note', JSON.stringify(this.note))
         this.note = await loadNoteById(parseInt(this.$route.params.id))
         this.newNoteTitle = ''
       }
@@ -146,6 +153,7 @@ export default defineComponent({
         this.isLoading = true
         const noteId = await createNote({title: this.newNoteTitle})
         await this.$router.push({params: {id: noteId}})
+        localStorage.setItem('note', JSON.stringify(this.note))
         this.note = await loadNoteById(parseInt(this.$route.params.id))
         this.newNoteTitle = ''
       }
@@ -157,6 +165,34 @@ export default defineComponent({
     async onNoteEnterPressed(event: KeyboardEvent) {
       if (event.key === 'Enter') {
         await this.onUpdateNote()
+      }
+    },
+
+    async cancelChanges() {
+      try {
+        this.isLoading = true
+        const oldNote = JSON.parse(localStorage.getItem('note') || '')
+        await patchNote(parseInt(this.$route.params.id), oldNote)
+
+        if (this.note?.todos && this.note?.todos.length > oldNote?.todos?.length) {
+          const oldNoteTodoIds = oldNote?.todos?.map((todo: TodoDto) => todo.id)
+          await Promise.all(this.note?.todos
+            ?.filter((todo: TodoDto) => !oldNoteTodoIds.includes(todo.id))
+            ?.map(async (todo: TodoDto) => await deleteTodo(todo.id || -1))
+          )
+        }
+
+        if (this.note?.todos && this.note?.todos.length < oldNote?.todos?.length) {
+          const noteTodoIds = this.note.todos.map((todo: TodoDto) => todo.id)
+          await Promise.all(oldNote?.todos
+            ?.filter((todo: TodoDto) => !noteTodoIds.includes(todo.id))
+            ?.map(async (todo: TodoDto) => await createTodo(todo)))
+        }
+
+        this.note = await loadNoteById(parseInt(this.$route.params.id))
+        this.isLoading = false
+      } catch (error) {
+        console.error(error)
       }
     },
 
@@ -200,11 +236,17 @@ export default defineComponent({
     try {
       this.isLoading = true;
       this.note = await loadNoteById(parseInt(this.$route.params.id))
+      localStorage.setItem('note', JSON.stringify(this.note))
       this.isLoading = false
     } catch(error) {
       console.error(error)
       this.isLoading = false
     }
+
+  },
+
+  async beforeDestroy() {
+    localStorage.removeItem('note')
   }
 })
 </script>
@@ -215,7 +257,6 @@ export default defineComponent({
 .note-page {
   &__header {
     display: flex;
-    justify-content: space-around;
     align-items: center;
   }
 
@@ -250,6 +291,13 @@ export default defineComponent({
 
   &__header-title-input {
     font-size: 24px;
+  }
+
+  &__buttons {
+    display: flex;
+    gap: 12px;
+    padding-top: 24px;
+    padding-bottom: 32px;
   }
 }
 </style>
