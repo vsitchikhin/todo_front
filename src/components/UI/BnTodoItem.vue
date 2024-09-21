@@ -20,7 +20,22 @@
       src="@/assets/icons/cross.svg"
       alt="delete"
       @click="onDeleteTodo"
-      class="bn-todo-item__delete-icon"
+      class="bn-todo-item__icon"
+    >
+    <img
+      src="@/assets/icons/pen.svg"
+      alt="delete"
+      @click="onChangeTodoClicked"
+      class="bn-todo-item__icon"
+    >
+    <input
+      v-show="showChangeTodoInput"
+      v-model="newTodoTitle"
+      type="text"
+      placeholder="Введите новое значение"
+      class="bn-todo-item__change-todo"
+      @blur.stop="onChangeTodoTitle"
+      @keydown="onEnterPress"
     >
   </div>
 
@@ -47,13 +62,16 @@ export default defineComponent({
   emits: {
     'change': null,
     'delete': null,
+    'update-title': null
   },
 
   data() {
     return {
       checkboxClasses: {
         'bn-todo-item--disabled': this.disabled,
-      }
+      },
+      newTodoTitle: '',
+      showChangeTodoInput: false
     }
   },
 
@@ -64,6 +82,25 @@ export default defineComponent({
 
     onDeleteTodo(event: Event) {
       this.$emit('delete', event, this.todo)
+    },
+
+    onChangeTodoClicked() {
+      this.showChangeTodoInput = !this.showChangeTodoInput;
+    },
+
+    onChangeTodoTitle() {
+      console.log('todo title: ', this.newTodoTitle)
+      this.$emit('update-title', {...this.todo, title: this.newTodoTitle})
+      setTimeout(() => {
+        this.newTodoTitle = ''
+      }, 50)
+      this.showChangeTodoInput = false
+    },
+
+    onEnterPress(event: KeyboardEvent) {
+      if (event.key === 'Enter') {
+        this.onChangeTodoTitle()
+      }
     }
   }
 })
@@ -114,10 +151,21 @@ export default defineComponent({
     }
   }
 
-  &__delete-icon {
+  &__icon {
     width: 20px;
     height: 20px;
     padding-left: 8px;
+  }
+
+  &__change-todo {
+    outline: none;
+    border: 2px solid $main-border;
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-size: 14px;
+    line-height: 1rem;
+    margin: 0 16px;
+    width: 180px;
   }
 }
 </style>

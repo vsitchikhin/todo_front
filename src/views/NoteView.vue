@@ -2,7 +2,14 @@
   <div class="note-page">
     <header class="note-page__header">
       <div v-if="isShowHeaderInput" class="note-page__header-title-block">
-        <input v-model="newNoteTitle" type="text" class="note-page__header-title-input" @blur="onUpdateNote" @keydown="onNoteEnterPressed">
+        <input
+          v-model="newNoteTitle"
+          type="text"
+          placeholder="Введите название заметки"
+          class="note-page__header-title-input"
+          @blur="onUpdateNote"
+          @keydown="onNoteEnterPressed"
+        >
       </div>
       <div v-else class="note-page__header-title-block">
         <div class="note-page__header-circle" :style="circleStyles" />
@@ -24,10 +31,22 @@
       <bn-button title="Отменить изменения" bg-color="orange" dark @click="cancelChanges" />
     </div>
     <div class="note-page__list" v-if="note">
-      <bn-todo-list :todos="note.todos" @change="onChangeTodo" @delete="onDeleteTodo" />
+      <bn-todo-list
+        :todos="note.todos"
+        @change="onChangeTodo"
+        @delete="onDeleteTodo"
+        @update-title="onUpdateTodoTitle"
+      />
     </div>
     <div v-if="note" class="note-page__add-block">
-      <input v-model="newTodoTitle" type="text" class="note-page__add-input" @blur="onCreateTodo" @keydown="onTodoEnterPressed">
+      <input
+        v-model="newTodoTitle"
+        type="text"
+        placeholder="Введите задачу"
+        class="note-page__add-input"
+        @blur="onCreateTodo"
+        @keydown="onTodoEnterPressed"
+      >
     </div>
     <bn-loader :loading="isLoading" />
     <bn-confirmation-dialog
@@ -174,21 +193,27 @@ export default defineComponent({
         const oldNote = JSON.parse(localStorage.getItem('note') || '')
         await patchNote(parseInt(this.$route.params.id), oldNote)
 
-        if (this.note?.todos && this.note?.todos.length > oldNote?.todos?.length) {
-          const oldNoteTodoIds = oldNote?.todos?.map((todo: TodoDto) => todo.id)
-          await Promise.all(this.note?.todos
-            ?.filter((todo: TodoDto) => !oldNoteTodoIds.includes(todo.id))
-            ?.map(async (todo: TodoDto) => await deleteTodo(todo.id || -1))
-          )
+        if (this.note?.todos) {
+          await Promise.all(this.note?.todos?.map(async (todo: TodoDto) => await deleteTodo(todo?.id || -1)))
         }
 
-        if (this.note?.todos && this.note?.todos.length < oldNote?.todos?.length) {
-          const noteTodoIds = this.note.todos.map((todo: TodoDto) => todo.id)
-          await Promise.all(oldNote?.todos
-            ?.filter((todo: TodoDto) => !noteTodoIds.includes(todo.id))
-            ?.map(async (todo: TodoDto) => await createTodo(todo)))
+        if (oldNote?.todos) {
+          await Promise.all(oldNote?.todos?.map(async (todo: TodoDto) => await createTodo(todo)))
         }
 
+        this.note = await loadNoteById(parseInt(this.$route.params.id))
+        this.isLoading = false
+      } catch (error) {
+        console.error(error)
+      }
+    },
+
+    async onUpdateTodoTitle(todo: TodoDto) {
+      try {
+        console.log(todo.title)
+        this.isLoading = true
+        localStorage.setItem('note', JSON.stringify(this.note))
+        await patchTodo(todo?.id || -1, todo)
         this.note = await loadNoteById(parseInt(this.$route.params.id))
         this.isLoading = false
       } catch (error) {

@@ -16,6 +16,7 @@
         :todo="item"
         @change="onChangeTodo"
         @delete="onDeleteTodo"
+        @update-title="onUpdateTodoTitle"
       />
       <bn-divider />
       <bn-todo-item
@@ -25,6 +26,7 @@
         :todo="item"
         @change="onChangeTodo"
         @delete="onDeleteTodo"
+        @update-title="onUpdateTodoTitle"
       />
     </template>
   </div>
@@ -58,6 +60,7 @@ export default defineComponent({
   emits: {
     'change': null,
     'delete': null,
+    'update-title': null,
   },
 
   data() {
@@ -79,7 +82,11 @@ export default defineComponent({
       this.$emit('change', event, todo)
     },
     onDeleteTodo(event: Event, todo: TodoDto) {
-      this.$emit('delete', event, todo);
+      this.$emit('delete', event, todo)
+    },
+    onUpdateTodoTitle(todo: TodoDto) {
+      console.info('update todo: ', todo.title)
+      this.$emit('update-title', todo)
     }
   }
 })
