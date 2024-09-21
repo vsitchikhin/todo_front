@@ -6,7 +6,14 @@
     </header>
     <bn-divider />
     <div class="notes-page__list">
-      <bn-note-card v-for="(note, index) in noteList" :key="note.id" :note="note" :circle-color="HEADER_CIRCLE_COLORS[index % HEADER_CIRCLE_COLORS.length]" />
+      <bn-note-card
+        v-for="(note, index) in noteList"
+        :key="note.id"
+        :note="note"
+        :circle-color="HEADER_CIRCLE_COLORS[index % HEADER_CIRCLE_COLORS.length]"
+        @delete="deleteNote"
+        class="notes-page__list-item"
+      />
     </div>
     <bn-loader :loading="isLoading" />
   </div>
@@ -14,7 +21,7 @@
 
 <script lang="ts">
 import {defineComponent} from 'vue'
-import {loadNoteList} from "@/utils/fetching.utils";
+import {deleteNote, loadNoteList} from "@/utils/fetching.utils";
 import BnNoteCard from "@/components/UI/BnNoteCard.vue";
 import BnLoader from "@/components/Controls/BnLoader.vue";
 import BnButton from "@/components/Controls/BnButton.vue";
@@ -35,7 +42,7 @@ export default defineComponent({
 
   methods: {
     gotoNote(isCreate: boolean, noteId: number) {
-      console.log('click')
+      console.log('gotoNote')
       if (isCreate) {
         this.$router.push({name: 'note'})
         return
@@ -44,7 +51,15 @@ export default defineComponent({
     },
 
     async deleteNote(noteId: number) {
-
+      try {
+        this.isLoading = true
+        await deleteNote(noteId)
+        this.noteList = await loadNoteList()
+        this.isLoading = false
+      } catch (e) {
+        this.isLoading = false
+        console.error(e)
+      }
     }
   },
 
@@ -70,10 +85,14 @@ export default defineComponent({
   }
 
   &__list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-gap: 20px;
+    grid-auto-flow: row dense;
     padding-top: 12px;
+  }
+
+  &__list-item {
   }
 }
 </style>

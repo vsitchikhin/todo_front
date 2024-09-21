@@ -43,8 +43,8 @@ export default defineComponent({
   },
 
   methods: {
-    onButtonClick() {
-      this.$emit('click');
+    onButtonClick(event: Event) {
+      this.$emit('click', event);
     }
   }
 })
